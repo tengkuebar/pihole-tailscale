@@ -25,12 +25,14 @@ Tailscale runs on the Windows host. Only Pi-hole runs in Docker. Its ports are p
 | Vantage point | Target | Ports | Result |
 |---|---|---|---|
 | Same Wi-Fi, Tailscale off | laptop LAN IP | 53/tcp, 8080/tcp | filtered |
-| Phone hotspot (other network) | home public IP | 53, 8080, 51820 (tcp) | filtered |
+| Same Wi-Fi, Tailscale off | laptop LAN IP | 53/udp | open\|filtered (no reply) |
+| Phone hotspot (other network), Tailscale off | home public IP | 53, 8080, 51820 (tcp) | filtered |
+| Phone hotspot (other network), Tailscale off | home public IP | 53, 51820 (udp) | open\|filtered (no reply) |
 | Tailnet member | laptop Tailscale IP | 53/tcp, 8080/tcp | **open** |
 
 The laptop has no globally routable IPv6 address (only the tailnet's private `fd7a::/48` address, no default IPv6 route, no outbound IPv6), so the IPv4 scans cover the internet-facing surface. Checked 2026-10-04; redo it if the ISP enables IPv6.
 
-Only tailnet members can reach Pi-hole. The tailnet scan used `-sT` (TCP connect) because nmap's raw SYN scan cannot use Tailscale's layer 3 virtual interface. Scans covered TCP only.
+Only tailnet members can reach Pi-hole. The tailnet scan used `-sT` (TCP connect) because nmap's raw SYN scan cannot use Tailscale's layer 3 virtual interface. The hotspot scans ran from a different public IP than the home connection, which I checked first, with Tailscale stopped on the scanning PC.
 
 ![LAN scan](docs/lan-scan.png)
 ![Internet scan](docs/wan-scan.png)
@@ -55,7 +57,7 @@ See [WINDOWS-SETUP.md](WINDOWS-SETUP.md). In short: install Tailscale, Docker De
 ## Limits
 - **Client IPs are masked.** Docker Desktop on Windows NATs every query, so all clients appear as `172.18.0.1` in the log. I identified devices by unique test domains and timestamps. A Linux host with host networking would show per-device addresses.
 - **The laptop is the single point of failure.** If it sleeps or reboots, DNS for every device on the tailnet fails.
-- **Scans covered TCP only.** A UDP scan returns `open|filtered` at best, so it cannot prove a UDP port is closed.
+- **UDP results are inconclusive by nature.** A UDP scan with no reply is reported as `open|filtered`, so it cannot prove a UDP port is closed. TCP `filtered` means the probes were dropped without a reply. No router port is forwarded, so none of these ports are expected to be reachable from outside.
 - **Unpinned image.** `pihole/pihole:latest` should be pinned to a version.
 - **Trust in Tailscale's coordination server.** Headscale would remove it.
 - **DNS blocking only.** It does not stop ads served from the same domain as content, and apps with their own encrypted DNS (or iCloud Private Relay) bypass it.
