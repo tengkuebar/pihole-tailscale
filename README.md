@@ -28,6 +28,8 @@ Tailscale runs on the Windows host. Only Pi-hole runs in Docker. Its ports are p
 | Phone hotspot (other network) | home public IP | 53, 8080, 51820 (tcp) | filtered |
 | Tailnet member | laptop Tailscale IP | 53/tcp, 8080/tcp | **open** |
 
+The laptop has no globally routable IPv6 address (only the tailnet's private `fd7a::/48` address, no default IPv6 route, no outbound IPv6), so the IPv4 scans cover the internet-facing surface. Checked 2026-10-04; redo it if the ISP enables IPv6.
+
 Only tailnet members can reach Pi-hole. The tailnet scan used `-sT` (TCP connect) because nmap's raw SYN scan cannot use Tailscale's layer 3 virtual interface. Scans covered TCP only.
 
 ![LAN scan](docs/lan-scan.png)
