@@ -1,0 +1,36 @@
+# Pi-hole in Docker Desktop (WSL2 backend). Tailscale runs on the Windows host, not in Docker.
+# Pi-hole is published ONLY on the laptop's Tailscale IP (and localhost for the admin page),
+# so nothing is reachable from the LAN or the internet.
+
+name: pihole-tailscale
+
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    # Bootstrap DNS for the container itself. Without this it inherits the host's
+    # Tailscale DNS (Pi-hole itself), so a fresh volume can't download blocklists.
+    dns:
+      - 1.1.1.1
+      - 9.9.9.9
+    environment:
+      TZ: ${TZ}
+      # Pi-hole v6 variable names (v5 used WEBPASSWORD, PIHOLE_DNS_, etc.)
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
+      FTLCONF_dns_upstreams: ${UPSTREAM_DNS}
+      # Queries arrive via Docker's NAT, so Pi-hole must accept non-local sources.
+      # Safe here because the ports below are bound to the Tailscale IP only.
+      FTLCONF_dns_listeningMode: all
+    volumes:
+      - pihole_etc:/etc/pihole
+      - pihole_dnsmasq:/etc/dnsmasq.d
+    ports:
+      - "${TS_IP}:53:53/tcp"
+      - "${TS_IP}:53:53/udp"
+      - "${TS_IP}:8080:80/tcp"     # admin page from your phone over Tailscale
+      - "127.0.0.1:8080:80/tcp"    # admin page from this PC
+
+volumes:
+  pihole_etc:
+  pihole_dnsmasq:
